@@ -74,6 +74,11 @@ VOICE_MODEL_PATH = "vosk-model-small-en-us-0.15"
 # trained at a different rate.
 VOICE_SAMPLE_RATE = 16000
 
+# Audio input device index passed to sounddevice. None = OS default.
+# Run `python3 voice_listener.py --list-devices` to list available indexes.
+# Override at runtime with the --mic-device CLI flag.
+VOICE_MIC_DEVICE_INDEX = None
+
 # After hearing a voice command, ignore gesture input for this long so
 # the spoken command actually takes effect instead of being immediately
 # overridden by a steady hand pose. A new voice command resets the timer.
@@ -90,6 +95,7 @@ VOICE_COMMANDS = (
     "right",
     "left",
     "stop",
+    "follow",
 )
 
 # Minimum per-word confidence (0..1) for a recognized phrase to be
@@ -103,6 +109,11 @@ VOICE_MIN_CONFIDENCE = 0.8
 # Steering value used for the voice "right" and "left" turn-while-going
 # commands. 0.5 is half-lock; raise toward 1.0 for tighter turns.
 VOICE_TURN_STEERING = 0.5
+
+# How long the "follow" voice command keeps free-tracking mode active.
+# After this many seconds with no new voice command the robot stops and
+# returns to normal command handling. Saying any command resets this.
+FOLLOW_TIMEOUT_SEC = 10.0
 
 # ---------------------------------------------------------------------------
 # Safety stop

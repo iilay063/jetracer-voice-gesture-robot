@@ -89,6 +89,8 @@ class RobotController:
             self._set(config.FORWARD_THROTTLE, -config.VOICE_TURN_STEERING)
         elif command == "stop":
             self.stop()
+        # "follow" is a mode switch, not a direct motor command; it is
+        # handled entirely in main.py and never reaches this method.
         # Unknown voice command: leave motors in their current state
         # rather than risk an unsafe default.
 

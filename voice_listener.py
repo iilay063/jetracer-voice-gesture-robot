@@ -21,12 +21,29 @@ from typing import Optional, Tuple
 import config
 
 
+def list_devices() -> None:
+    """Print every audio input device with its index number.
+
+    Run this (or `python3 voice_listener.py --list-devices`) to find the
+    right value for config.VOICE_MIC_DEVICE_INDEX or --mic-device.
+    """
+    import sounddevice as sd
+    default_in = sd.default.device[0]
+    print("Available audio input devices:")
+    for i, dev in enumerate(sd.query_devices()):
+        if dev["max_input_channels"] > 0:
+            tag = " <- default" if i == default_in else ""
+            print(f"  [{i}] {dev['name']}{tag}")
+
+
 class VoiceListener:
     def __init__(self,
                  model_path: str = config.VOICE_MODEL_PATH,
                  sample_rate: int = config.VOICE_SAMPLE_RATE,
+                 device_index: Optional[int] = config.VOICE_MIC_DEVICE_INDEX,
                  verbose: bool = False):
         self._verbose = verbose
+        self._device_index = device_index
         # Lazy imports so the rest of the project stays importable on
         # machines that don't have vosk/sounddevice installed yet.
         import vosk
@@ -60,11 +77,14 @@ class VoiceListener:
 
         # blocksize=8000 = 0.5 s of audio at 16 kHz - small enough for
         # responsive recognition, big enough to amortise callback cost.
+        # device=None lets sounddevice use the OS default; pass an int
+        # index (from list_devices()) to select a specific microphone.
         self._stream = sd.RawInputStream(
             samplerate=self._sample_rate,
             blocksize=8000,
             dtype="int16",
             channels=1,
+            device=self._device_index,
             callback=self._audio_callback,
         )
         self._stream.start()
@@ -127,15 +147,26 @@ class VoiceListener:
 
 
 if __name__ == "__main__":
-    # Standalone smoke test - run this on the dev PC to verify Vosk
-    # and the mic work before wiring into the main loop.
+    import argparse
+    p = argparse.ArgumentParser(
+        description="Standalone smoke test for voice recognition.")
+    p.add_argument("--list-devices", action="store_true",
+                   help="Print available audio input devices and exit.")
+    p.add_argument("--device", type=int, default=None,
+                   help="Audio input device index (see --list-devices).")
+    a = p.parse_args()
+
+    if a.list_devices:
+        list_devices()
+        raise SystemExit(0)
+
     print(f"Loading model from {config.VOICE_MODEL_PATH}...")
     print(f"Vocabulary: {config.VOICE_COMMANDS}")
     print("Speak a command. Ctrl-C to quit.\n")
 
     # verbose=True prints every match including rejected ones, so you
     # can see the confidence values and tune VOICE_MIN_CONFIDENCE.
-    listener = VoiceListener(verbose=True)
+    listener = VoiceListener(verbose=True, device_index=a.device)
     listener.start()
 
     try:

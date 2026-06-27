@@ -10,3 +10,7 @@ env/
 .idea/
 .DS_Store
 *.swp
+
+# Vosk speech recognition models - large binary directories, download separately.
+# See README "Voice setup" for the download link.
+vosk-model*/

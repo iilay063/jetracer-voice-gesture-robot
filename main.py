@@ -34,7 +34,16 @@ def main() -> None:
                         help="Disable the voice channel (gesture only).")
     parser.add_argument("--debug", action="store_true",
                         help="Show OpenCV debug window and print voice match confidences.")
+    parser.add_argument("--mic-device", type=int, default=None,
+                        help="Audio input device index. See --list-mics for options.")
+    parser.add_argument("--list-mics", action="store_true",
+                        help="Print available audio input devices and exit.")
     args = parser.parse_args()
+
+    if args.list_mics:
+        from voice_listener import list_devices
+        list_devices()
+        return
 
     camera = Camera()
     tracker = HandTracker()
@@ -46,7 +55,8 @@ def main() -> None:
     if not args.no_voice:
         try:
             from voice_listener import VoiceListener
-            voice = VoiceListener(verbose=args.debug)
+            mic = args.mic_device if args.mic_device is not None else config.VOICE_MIC_DEVICE_INDEX
+            voice = VoiceListener(verbose=args.debug, device_index=mic)
             voice.start()
             print("[voice] listening")
         except Exception as exc:
@@ -58,6 +68,10 @@ def main() -> None:
     # Tracks which voice command was last acted upon, so we only log
     # mode transitions instead of every frame.
     last_acted_voice_time = 0.0
+    # "follow" mode: voice-initiated free-tracking. Active until a new
+    # voice command cancels it or FOLLOW_TIMEOUT_SEC elapses.
+    follow_active = False
+    follow_start = 0.0
 
     overlay = None
     if args.debug or config.SHOW_DEBUG_WINDOW:
@@ -83,16 +97,45 @@ def main() -> None:
                 voice_cmd, voice_cmd_time = voice.latest()
             voice_active = (voice_cmd is not None
                             and (now - voice_cmd_time) < config.VOICE_LATCH_SEC)
+            # True only on the first frame after a new command is heard.
+            new_voice = (voice_cmd is not None
+                         and voice_cmd_time != last_acted_voice_time)
+
+            # --- Follow mode entry / exit ---
+            # A new voice command transitions state regardless of latch.
+            if new_voice:
+                last_any_seen = now          # voice presence resets safety timer
+                last_acted_voice_time = voice_cmd_time
+                if voice_cmd == "follow":
+                    follow_active = True
+                    follow_start = now
+                    print("[voice] -> 'follow' (free-tracking mode)")
+                else:
+                    if follow_active:
+                        print("[voice] follow mode ended by command")
+                    follow_active = False
+
+            # Follow timeout: whichever fires first (new command above or
+            # this timeout) ends follow mode.
+            if follow_active and (now - follow_start) >= config.FOLLOW_TIMEOUT_SEC:
+                print("[voice] follow timeout -> stop")
+                follow_active = False
+                robot.stop()
 
             hand = tracker.detect(frame)
             gesture = Gesture.UNKNOWN
 
-            if voice_active:
+            if follow_active:
+                # Free-tracking: steer toward the hand exactly like POINT/
+                # UNKNOWN, but voice-initiated. Only update safety timer when
+                # a hand is visible; no hand => safety stop will fire normally.
+                if hand is not None:
+                    last_any_seen = now
+                    robot.steer_toward(hand.center, hand_size=hand.size)
+            elif voice_active and voice_cmd != "follow":
+                # Normal latched voice command (forward, stop, spin …).
                 last_any_seen = now
                 robot.execute_voice(voice_cmd)
-                if voice_cmd_time != last_acted_voice_time:
-                    print(f"[voice] -> {voice_cmd!r}")
-                    last_acted_voice_time = voice_cmd_time
             elif hand is not None:
                 last_any_seen = now
                 gesture = classify(hand)
@@ -106,8 +149,13 @@ def main() -> None:
                 robot.stop()
 
             if config.PRINT_DIAGNOSTICS:
-                mode = "voice" if voice_active else "gesture"
-                print(f"[loop] fps={fps:5.1f}  mode={mode:7s}"
+                if follow_active:
+                    mode = "follow "
+                elif voice_active:
+                    mode = "voice  "
+                else:
+                    mode = "gesture"
+                print(f"[loop] fps={fps:5.1f}  mode={mode}"
                       f"  gesture={gesture.value}"
                       f"  hand={'yes' if hand else 'no '}")
 
