@@ -38,14 +38,14 @@ FINGER_STRAIGHTNESS_COS_MIN = 0.6
 # ---------------------------------------------------------------------------
 # Robot control
 # ---------------------------------------------------------------------------
-# Hardware direction calibration. On our JetRacer the steering servo and
-# ESC are wired so that positive values move the WRONG way, so both signs
-# are flipped here. These are applied once, at the moment values are
-# written to the hardware - all control logic works in the "natural"
-# convention (positive throttle = forward, positive steering = right).
-# Flip back to +1 if the hardware is ever rewired.
+# Hardware direction calibration. On our JetRacer the steering servo is
+# wired so that positive steering values turn the WRONG way, so its sign
+# is flipped here; the ESC/throttle direction is correct as-is. Signs are
+# applied once, at the moment values are written to the hardware - all
+# control logic works in the "natural" convention (positive throttle =
+# forward, positive steering = right). Verified on the car 2026-07-08.
 STEERING_SIGN = -1
-THROTTLE_SIGN = -1
+THROTTLE_SIGN = 1
 
 # Safety cap during development. Do not raise without supervision.
 MAX_THROTTLE = 0.3
