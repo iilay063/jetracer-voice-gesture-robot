@@ -89,10 +89,11 @@ VOICE_SAMPLE_RATE = 16000
 VOICE_MIC_DEVICE_INDEX = None
 
 # A motion command (forward, backward, turn, spin) drives the robot for
-# at most this long, then the robot actively stops. Repeating the command
-# (or saying a new one) resets the timer. This bounds how far the robot
-# can travel if a "stop" is missed - deliberately short for safety.
-VOICE_COMMAND_TIMEOUT_SEC = 5.0
+# at most this long, then the robot actively stops. Any new command -
+# including a turn modifier - resets the timer, so continuous driving
+# just needs a command every now and then. This bounds how far the robot
+# can travel if a "stop" is missed.
+VOICE_COMMAND_TIMEOUT_SEC = 10.0
 
 # The full vocabulary. Order doesn't matter; Vosk uses this as a
 # constrained grammar. "[unk]" lets non-matching speech be ignored

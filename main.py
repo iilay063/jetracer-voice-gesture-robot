@@ -111,7 +111,8 @@ def main() -> None:
         overlay = DebugOverlay()
 
     mode = MODE_IDLE
-    active_cmd = ""            # motion command currently driving (MODE_COMMAND)
+    base_cmd = ""              # motion command currently driving (MODE_COMMAND)
+    turn_cmd = None            # optional steering modifier on top of base_cmd
     mode_start = 0.0           # when the current command/follow began
     last_cmd_time = 0.0        # timestamp of the last voice command acted on
     last_drive_time = time.time()  # last moment something actively drove motors
@@ -159,10 +160,24 @@ def main() -> None:
                         print("[voice] 'come' -> follow mode")
                         mode = MODE_FOLLOW
                         mode_start = now
+                    elif voice_cmd in ("turn right", "turn left"):
+                        # Turns are modifiers, not separate motions: while
+                        # driving forward/backward only the wheels change,
+                        # the motion continues seamlessly. From a standstill
+                        # (or during a spin) a turn starts a forward curve.
+                        if not (mode == MODE_COMMAND
+                                and base_cmd in ("forward", "backward")):
+                            base_cmd = "forward"
+                        turn_cmd = voice_cmd
+                        mode = MODE_COMMAND
+                        mode_start = now       # turning extends the timer
+                        print(f"[voice] '{voice_cmd}' (while {base_cmd})")
                     else:
+                        # New base motion: straighten the wheels.
                         print(f"[voice] '{voice_cmd}'")
                         mode = MODE_COMMAND
-                        active_cmd = voice_cmd
+                        base_cmd = voice_cmd
+                        turn_cmd = None
                         mode_start = now
 
             # --- Act on the current mode. ---
@@ -173,11 +188,11 @@ def main() -> None:
                 if now - mode_start >= config.VOICE_COMMAND_TIMEOUT_SEC:
                     # Timed out with no follow-up command: active stop, so a
                     # missed "stop" can never leave the robot driving away.
-                    print(f"[voice] '{active_cmd}' timed out -> stop")
+                    print(f"[voice] '{base_cmd}' timed out -> stop")
                     robot.stop()
                     mode = MODE_IDLE
                 else:
-                    robot.execute_voice(active_cmd)
+                    robot.execute_voice(base_cmd, turn_cmd)
                     last_drive_time = now
 
             elif mode == MODE_FOLLOW:
@@ -229,8 +244,9 @@ def main() -> None:
             # Print only while something is driving; an idle robot would
             # otherwise flood the console at camera FPS.
             if config.PRINT_DIAGNOSTICS and (mode != MODE_IDLE or hand is not None):
+                shown = base_cmd + (f"+{turn_cmd}" if turn_cmd else "")
                 print(f"[loop] fps={fps:5.1f}  mode={mode:7s}"
-                      f"  cmd={active_cmd if mode == MODE_COMMAND else '-':10s}"
+                      f"  cmd={shown if mode == MODE_COMMAND else '-':22s}"
                       f"  gesture={gesture.value}"
                       f"  hand={'yes' if hand else 'no '}")
 

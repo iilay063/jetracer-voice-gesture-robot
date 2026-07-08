@@ -73,28 +73,36 @@ class RobotController:
         frac = (config.HAND_SIZE_STOP - size) / span
         return config.FORWARD_THROTTLE * frac
 
-    def execute_voice(self, command: str) -> None:
-        """Drive the robot according to a recognized voice command.
+    def execute_voice(self, base: str, turn: Optional[str] = None) -> None:
+        """Drive the robot from voice: a base motion command plus an
+        optional steering modifier ("turn left"/"turn right"). The turn
+        only changes the wheels - the base motion continues seamlessly,
+        so "forward" ... "turn left" curves left without stopping, and a
+        turn while reversing steers the reverse path.
         Voice commands are open-loop: no camera feedback, just fixed
         throttle and steering values."""
-        if command == "forward":
-            self._set(config.FORWARD_THROTTLE, 0.0)
-        elif command == "backward":
-            self._set(config.REVERSE_THROTTLE, 0.0)
-        elif command == "spin right":
+        if base == "forward":
+            throttle = config.FORWARD_THROTTLE
+        elif base == "backward":
+            throttle = config.REVERSE_THROTTLE
+        elif base == "spin right":
             self._set(config.SPIN_THROTTLE, 1.0)
-        elif command == "spin left":
+            return
+        elif base == "spin left":
             self._set(config.SPIN_THROTTLE, -1.0)
-        elif command == "turn right":
-            self._set(config.FORWARD_THROTTLE, config.VOICE_TURN_STEERING)
-        elif command == "turn left":
-            self._set(config.FORWARD_THROTTLE, -config.VOICE_TURN_STEERING)
-        elif command == "stop":
-            self.stop()
+            return
         else:
-            # "come" is a mode switch handled in main.py and anything
-            # else is unknown - stop rather than risk an unsafe default.
+            # "stop"/"come" are handled in main.py and anything else is
+            # unknown - stop rather than risk an unsafe default.
             self.stop()
+            return
+
+        steering = 0.0
+        if turn == "turn right":
+            steering = config.VOICE_TURN_STEERING
+        elif turn == "turn left":
+            steering = -config.VOICE_TURN_STEERING
+        self._set(throttle, steering)
 
     def execute(self,
                 gesture: Gesture,

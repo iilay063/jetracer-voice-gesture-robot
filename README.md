@@ -24,10 +24,10 @@ The main loop is a small state machine:
 | State     | What drives the robot | How it ends |
 |-----------|----------------------|-------------|
 | `idle`    | Nothing — motors stopped | A voice command arrives |
-| `command` | The last motion command (`forward`, `turn left`, …) | A new command, or auto-stop after `VOICE_COMMAND_TIMEOUT_SEC` (5 s) |
+| `command` | The current base motion (`forward`, `backward`, `spin …`) plus an optional turn | A new command, or auto-stop after `VOICE_COMMAND_TIMEOUT_SEC` (10 s) |
 | `follow`  | Hand position in frame (closed-loop) | Any voice command, an open palm, or `FOLLOW_TIMEOUT_SEC` (10 s) |
 
-Every motion command has a hard timeout followed by an **active stop** — a missed `stop` can never leave the robot driving away. Repeat the command to keep driving.
+`turn left` / `turn right` are **modifiers, not separate motions**: while driving forward or backward they just steer the wheels — the motion continues seamlessly. From a standstill they start a forward curve. Saying `forward`/`backward` again straightens the wheels. Every command (including turns) resets the timeout; after `VOICE_COMMAND_TIMEOUT_SEC` with nothing new the robot performs an **active stop** — a missed `stop` can never leave it driving away.
 
 ## Voice command vocabulary
 
@@ -36,8 +36,8 @@ Every motion command has a hard timeout followed by an **active stop** — a mis
 | `stop`            | Stop motors immediately                      |
 | `forward`         | Drive forward at fixed throttle              |
 | `backward`        | Reverse at fixed throttle                    |
-| `turn right`      | Drive forward, turn right                    |
-| `turn left`       | Drive forward, turn left                     |
+| `turn right`      | Steer right (keeps current motion; forward if idle) |
+| `turn left`       | Steer left (keeps current motion; forward if idle)  |
 | `spin right`      | Rotate in place clockwise                    |
 | `spin left`       | Rotate in place counter-clockwise            |
 | `come`            | Enter follow-the-hand mode (see below)       |
