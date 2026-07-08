@@ -105,6 +105,26 @@ class VoiceListener:
     def start(self) -> None:
         import sounddevice as sd
 
+        # When no explicit device is configured, prefer the PulseAudio
+        # route over PortAudio's own default. Verified on the JetRacer's
+        # K9 USB receiver: opening the raw hw device "succeeds" but never
+        # delivers a single sample, while the same mic works perfectly
+        # through Pulse (which also follows the OS default-source setting
+        # and resamples for us).
+        device = self._device_index
+        if device is None:
+            for name in ("pulse", "default"):
+                for i, dev in enumerate(sd.query_devices()):
+                    if dev["name"] == name and dev["max_input_channels"] > 0:
+                        device = i
+                        break
+                if device is not None:
+                    break
+        self._device_index = device
+        chosen = sd.query_devices(device, "input")
+        print(f"[voice] input device: {device if device is not None else 'portaudio-default'}"
+              f" ({chosen['name']})")
+
         # Preferred format is exactly what Vosk wants: 16 kHz mono.
         # USB wireless receivers frequently reject that, so fall back to
         # the device's native rate (and stereo if mono is refused) and
@@ -234,12 +254,17 @@ class VoiceListener:
                 if not self._recognizer.AcceptWaveform(data):
                     # Mid-utterance: check partial text for "stop" so the
                     # safety-critical command fires without waiting for the
-                    # end-of-utterance silence. A false stop is harmless.
+                    # end-of-utterance silence. A false stop is harmless to
+                    # safety but annoying, so only trigger when "stop" is
+                    # the word being spoken RIGHT NOW (last in the partial),
+                    # not merely somewhere in a force-matched transcript.
                     partial = json.loads(
                         self._recognizer.PartialResult()).get("partial", "")
                     if partial != self._last_partial:
                         self._last_partial = partial
-                        if "stop" in partial.split():
+                        words = partial.split()
+                        if (config.VOICE_FAST_STOP
+                                and words and words[-1] == "stop"):
                             if self._verbose:
                                 print("  fast-stop from partial result")
                             self._set_command("stop")
@@ -250,6 +275,13 @@ class VoiceListener:
                 text = result.get("text", "").strip()
                 # "[unk]" or empty means non-command speech / silence.
                 if not text or "[unk]" in text:
+                    continue
+                # Only exact vocabulary entries count. The grammar can
+                # emit fragments of multi-word phrases (a bare "right"
+                # from "turn right") - observed on the real robot.
+                if text not in config.VOICE_COMMANDS:
+                    if self._verbose:
+                        print(f"  rejected: {text!r}  (not in vocabulary)")
                     continue
                 # Reject the phrase if any word's confidence is below
                 # the threshold - one shaky word taints the whole match.

@@ -33,8 +33,10 @@ class RobotController:
         if config.PRINT_DIAGNOSTICS:
             print(f"[motor] throttle={throttle:+.2f}  steering={steering:+.2f}")
         if self._use_motors and self._car is not None:
-            self._car.throttle = throttle
-            self._car.steering = steering
+            # Direction signs correct for how the servo/ESC are wired;
+            # everything above this line uses the natural convention.
+            self._car.throttle = throttle * config.THROTTLE_SIGN
+            self._car.steering = steering * config.STEERING_SIGN
 
     def stop(self) -> None:
         self._set(0.0, 0.0)

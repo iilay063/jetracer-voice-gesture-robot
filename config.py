@@ -38,17 +38,26 @@ FINGER_STRAIGHTNESS_COS_MIN = 0.6
 # ---------------------------------------------------------------------------
 # Robot control
 # ---------------------------------------------------------------------------
+# Hardware direction calibration. On our JetRacer the steering servo and
+# ESC are wired so that positive values move the WRONG way, so both signs
+# are flipped here. These are applied once, at the moment values are
+# written to the hardware - all control logic works in the "natural"
+# convention (positive throttle = forward, positive steering = right).
+# Flip back to +1 if the hardware is ever rewired.
+STEERING_SIGN = -1
+THROTTLE_SIGN = -1
+
 # Safety cap during development. Do not raise without supervision.
 MAX_THROTTLE = 0.3
 
-# Throttle for the closed-fist "forward" gesture.
-FORWARD_THROTTLE = 0.2
+# Throttle for driving forward (voice "forward", closed-fist gesture).
+FORWARD_THROTTLE = 0.25
 
-# Throttle for the peace-sign "reverse" gesture. Negative = reverse.
-REVERSE_THROTTLE = -0.15
+# Throttle for reversing. Negative = reverse.
+REVERSE_THROTTLE = -0.18
 
-# Throttle while spinning in place for the thumbs-up gesture.
-SPIN_THROTTLE = 0.15
+# Throttle while spinning in place.
+SPIN_THROTTLE = 0.18
 
 # Spin direction: +1 = clockwise (steer right), -1 = counter-clockwise.
 # Up for review with the lecturer; flipped here means flipped everywhere.
@@ -104,6 +113,12 @@ VOICE_COMMANDS = (
     "stop",
     "come",
 )
+
+# Fast path for "stop": act on Vosk's partial (mid-utterance) results
+# instead of waiting for end-of-utterance silence. Cuts stop latency
+# roughly in half. Disable if background conversation triggers too many
+# false stops during a demo.
+VOICE_FAST_STOP = True
 
 # Minimum per-word confidence (0..1) for a recognized phrase to be
 # accepted as a real command. Constrained-grammar recognizers always
