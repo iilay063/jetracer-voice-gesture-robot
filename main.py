@@ -50,6 +50,10 @@ def main() -> None:
                         help="Run vision/voice pipeline only; do not drive motors.")
     parser.add_argument("--no-voice", action="store_true",
                         help="Disable the voice channel (gesture only; implies --gesture-mode).")
+    parser.add_argument("--no-camera", action="store_true",
+                        help="Voice-only mode: skip the camera and all image "
+                             "processing. Frees CPU for speech recognition; "
+                             "follow mode and gestures are unavailable.")
     parser.add_argument("--gesture-mode", action="store_true",
                         help="Enable full gesture control when no voice command is "
                              "active (for elevated-surface demos where the camera "
@@ -89,19 +93,26 @@ def main() -> None:
 
     # The camera is only needed for follow / gesture mode. A broken
     # camera should not take down voice control, so degrade with a
-    # warning instead of refusing to start.
+    # warning instead of refusing to start. --no-camera skips it on
+    # purpose to leave every CPU cycle to speech recognition.
     camera = None
     tracker = None
-    try:
-        from camera import Camera
-        from hand_tracker import HandTracker
-        camera = Camera()
-        tracker = HandTracker()
-    except Exception as exc:
+    if args.no_camera:
         if gesture_mode:
-            raise  # gestures without a camera cannot work at all
-        print(f"[camera] unavailable ({exc!r}) - follow mode disabled, "
-              "voice commands still work")
+            raise SystemExit("--no-camera and gesture mode cannot combine: "
+                             "gestures need the camera.")
+        print("[camera] disabled by --no-camera (voice-only mode)")
+    else:
+        try:
+            from camera import Camera
+            from hand_tracker import HandTracker
+            camera = Camera()
+            tracker = HandTracker()
+        except Exception as exc:
+            if gesture_mode:
+                raise  # gestures without a camera cannot work at all
+            print(f"[camera] unavailable ({exc!r}) - follow mode disabled, "
+                  "voice commands still work")
 
     robot = RobotController(use_motors=not args.no_motors)
 

@@ -167,6 +167,10 @@ python3 main.py --no-motors --debug
 # Full system, voice-first (floor). Test on an open floor.
 python3 main.py
 
+# Voice-only: no camera / image processing at all. Fastest speech
+# recognition on the Nano; follow mode and gestures unavailable.
+python3 main.py --no-camera
+
 # Elevated-surface demo: gestures drive when no voice command is active.
 python3 main.py --gesture-mode
 
