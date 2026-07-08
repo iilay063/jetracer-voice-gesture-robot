@@ -141,6 +141,23 @@ python3 voice_listener.py --list-devices
 python3 voice_listener.py --device 2
 ```
 
+### Jetson Nano gotchas (both hit us in practice)
+
+1. **`Illegal instruction (core dumped)` on `import numpy`** — OpenBLAS misdetects the Nano's Cortex-A57. Fix once:
+
+   ```bash
+   echo 'export OPENBLAS_CORETYPE=ARMV8' >> ~/.bashrc
+   source ~/.bashrc
+   ```
+
+2. **`Segmentation fault (core dumped)` on `import vosk`** — every vosk version on PyPI for Python 3.6/aarch64 (0.3.43-0.3.45) crashes on the Nano. Install 0.3.32 from vosk's GitHub releases instead (verified working on JetPack 4.5.1):
+
+   ```bash
+   python3 -m pip install https://github.com/alphacep/vosk-api/releases/download/v0.3.32/vosk-0.3.32-py3-none-linux_aarch64.whl
+   ```
+
+   (The `urllib3 or chardet doesn't match a supported version` warning that prints alongside is harmless — it comes from `requests` on every JetPack image.)
+
 ## Run
 
 ```bash
