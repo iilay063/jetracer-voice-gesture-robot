@@ -1,7 +1,14 @@
 {
   "permissions": {
     "allow": [
-      "Bash(python3 -m py_compile config.py camera.py hand_tracker.py gesture_classifier.py laser_tracker.py robot_controller.py utils/visualization.py main.py)"
+      "Bash(python3 -m py_compile config.py camera.py hand_tracker.py gesture_classifier.py laser_tracker.py robot_controller.py utils/visualization.py main.py)",
+      "Bash(git *)",
+      "Bash(.venv/bin/python -m py_compile main.py config.py voice_listener.py robot_controller.py gesture_classifier.py hand_tracker.py camera.py utils/visualization.py)",
+      "Bash(.venv/bin/python -c \"import vosk, sounddevice, numpy; print\\('imports OK'\\)\")",
+      "Bash(.venv/bin/python *)",
+      "Bash(awk '{n=$1; $1=\"\"; printf \"%4dx %s\\\\n\", n, $0}')",
+      "Bash(.venv/bin/pip list *)",
+      "Bash(echo \"exit=$?\")"
     ]
   }
 }

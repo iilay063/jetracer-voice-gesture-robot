@@ -79,23 +79,30 @@ VOICE_SAMPLE_RATE = 16000
 # Override at runtime with the --mic-device CLI flag.
 VOICE_MIC_DEVICE_INDEX = None
 
-# After hearing a voice command, ignore gesture input for this long so
-# the spoken command actually takes effect instead of being immediately
-# overridden by a steady hand pose. A new voice command resets the timer.
-VOICE_LATCH_SEC = 3.0
+# A motion command (forward, backward, turn, spin) drives the robot for
+# at most this long, then the robot actively stops. Repeating the command
+# (or saying a new one) resets the timer. This bounds how far the robot
+# can travel if a "stop" is missed - deliberately short for safety.
+VOICE_COMMAND_TIMEOUT_SEC = 5.0
 
 # The full vocabulary. Order doesn't matter; Vosk uses this as a
 # constrained grammar. "[unk]" lets non-matching speech be ignored
 # instead of being force-matched to one of the commands.
+#
+# Word choice matters: with a constrained grammar Vosk force-matches
+# speech to the *nearest* phrase, so entries must be phonetically far
+# apart. That is why follow mode is "come" (not "follow", which collides
+# with "forward") and turning is "turn right" (two syllables are much
+# harder to false-trigger than a bare "right" spoken mid-sentence).
 VOICE_COMMANDS = (
     "forward",
     "backward",
     "spin right",
     "spin left",
-    "right",
-    "left",
+    "turn right",
+    "turn left",
     "stop",
-    "follow",
+    "come",
 )
 
 # Minimum per-word confidence (0..1) for a recognized phrase to be
@@ -106,19 +113,37 @@ VOICE_COMMANDS = (
 # commands are being rejected.
 VOICE_MIN_CONFIDENCE = 0.8
 
-# Steering value used for the voice "right" and "left" turn-while-going
+# Steering value used for the voice "turn right" / "turn left"
 # commands. 0.5 is half-lock; raise toward 1.0 for tighter turns.
 VOICE_TURN_STEERING = 0.5
 
-# How long the "follow" voice command keeps free-tracking mode active.
-# After this many seconds with no new voice command the robot stops and
-# returns to normal command handling. Saying any command resets this.
+# Audio block length fed to the recognizer, in seconds. Smaller blocks
+# mean lower command latency (especially for "stop") at slightly higher
+# callback overhead. 0.25 s is a good balance on the Nano.
+VOICE_BLOCK_SEC = 0.25
+
+# Maximum audio blocks buffered between the mic callback and the
+# recognizer thread. If Vosk falls behind real time (e.g. CPU contention
+# with MediaPipe), the OLDEST audio is dropped so recognition stays
+# current - a laggy "stop" is worse than a missed word.
+VOICE_QUEUE_MAX_BLOCKS = 16
+
+# Mic watchdog: if no audio arrives from the input stream for this long
+# while listening, the mic is considered dead (e.g. K9 wireless receiver
+# unplugged or link dropped) and the robot is stopped.
+VOICE_WATCHDOG_SEC = 2.0
+
+# How long the "come" voice command keeps hand-following mode active.
+# After this many seconds the robot stops and returns to waiting for
+# voice commands. Saying "come" again resets the timer.
 FOLLOW_TIMEOUT_SEC = 10.0
 
 # ---------------------------------------------------------------------------
 # Safety stop
 # ---------------------------------------------------------------------------
-# Cut motors after this long with no detection of any kind.
+# Cut motors after this long without any control input actively driving
+# them (no live voice command, no hand while following). This is the
+# last line of defense on top of the per-command timeouts.
 SAFETY_STOP_SEC = 3.0
 
 # ---------------------------------------------------------------------------

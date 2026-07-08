@@ -83,16 +83,16 @@ class RobotController:
             self._set(config.SPIN_THROTTLE, 1.0)
         elif command == "spin left":
             self._set(config.SPIN_THROTTLE, -1.0)
-        elif command == "right":
+        elif command == "turn right":
             self._set(config.FORWARD_THROTTLE, config.VOICE_TURN_STEERING)
-        elif command == "left":
+        elif command == "turn left":
             self._set(config.FORWARD_THROTTLE, -config.VOICE_TURN_STEERING)
         elif command == "stop":
             self.stop()
-        # "follow" is a mode switch, not a direct motor command; it is
-        # handled entirely in main.py and never reaches this method.
-        # Unknown voice command: leave motors in their current state
-        # rather than risk an unsafe default.
+        else:
+            # "come" is a mode switch handled in main.py and anything
+            # else is unknown - stop rather than risk an unsafe default.
+            self.stop()
 
     def execute(self,
                 gesture: Gesture,

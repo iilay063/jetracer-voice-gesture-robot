@@ -24,11 +24,13 @@ class Hand:
 
 class HandTracker:
     def __init__(self):
-        # Lazy + explicit submodule import: dev laptops without
-        # mediapipe can still import other modules for unit-testing,
-        # and `import mediapipe as mp` does not reliably populate
-        # mp.solutions on newer wheels (Python 3.12+).
-        from mediapipe.solutions import hands as mp_hands
+        # Lazy import: dev laptops without mediapipe can still import
+        # other modules for unit-testing. Access solutions as an
+        # attribute (mp.solutions) - `from mediapipe.solutions import`
+        # fails on 0.10.x wheels because "solutions" is an alias to
+        # mediapipe.python.solutions, not a real import path.
+        import mediapipe as mp
+        mp_hands = mp.solutions.hands
         self._hands = mp_hands.Hands(
             static_image_mode=False,
             max_num_hands=config.HAND_MAX_HANDS,
