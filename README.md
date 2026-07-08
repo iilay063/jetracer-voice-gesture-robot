@@ -1,4 +1,4 @@
-# GestureRacer
+# JetRacer — Voice and Gesture Controlled Robot
 
 Voice-controlled robot car with hand-following. Final project for **Software Development for Human & Robot Humanoid Interaction** (HIT, Computer Science).
 
@@ -109,7 +109,7 @@ pip3 install vosk sounddevice
 Download the Vosk small English model (~40 MB) from https://alphacephei.com/vosk/models — look for `vosk-model-small-en-us-0.15`. Unzip it into the project root so the directory layout is:
 
 ```
-GestureRacer/
+project_root/
 └── vosk-model-small-en-us-0.15/
     ├── am/
     ├── conf/

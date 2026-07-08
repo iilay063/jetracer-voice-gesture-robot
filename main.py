@@ -1,5 +1,5 @@
 """
-GestureRacer entry point - voice-first control.
+JetRacer - Voice and Gesture Controlled Robot: entry point (voice-first).
 
 Pipeline:
     mic   -> voice_listener -> command  (PRIMARY channel)

@@ -1,5 +1,5 @@
 """
-Central configuration for the GestureRacer project.
+Central configuration for the JetRacer voice/gesture robot project.
 
 All tunable values live here so the rest of the code is free of magic
 numbers. Adjust thresholds, control gains and detection parameters here

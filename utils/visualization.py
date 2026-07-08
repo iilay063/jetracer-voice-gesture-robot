@@ -14,7 +14,7 @@ from hand_tracker import Hand
 
 
 class DebugOverlay:
-    WINDOW = "GestureRacer"
+    WINDOW = "JetRacer - Voice and Gesture Controlled Robot"
 
     def __init__(self) -> None:
         import cv2
